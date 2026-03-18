@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Name Game - Lean Simulation | UF16</title>
+<title>Name Game – Lean Simulation | UF16</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
@@ -52,6 +52,8 @@
   .btn-teal:hover:not(:disabled) { background: #0f766e; }
   .btn-outline { background: transparent; color: #94a3b8; border: 1px solid #334155; }
   .btn-outline:hover:not(:disabled) { background: #1e293b; color: #f1f5f9; }
+  .btn-success { background: #16a34a; color: white; }
+  .btn-success:hover:not(:disabled) { background: #15803d; }
   .btn-lg { padding: 1rem 3rem; font-size: 1.1rem; }
 
   .btn-row { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
@@ -117,6 +119,38 @@
   .disruption-stat .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
   .disruption-stat .value { font-size: 1.3rem; font-weight: 700; color: #fbbf24; }
 
+  /* Klassenauswertung */
+  .dashboard-link { text-align: center; margin-top: 0.5rem; }
+  .dashboard-link a { color: #64748b; font-size: 0.85rem; text-decoration: underline; cursor: pointer; }
+  .dashboard-link a:hover { color: #94a3b8; }
+
+  .class-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+  .class-table th { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 2px solid #334155; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+  .class-table td { padding: 0.5rem; border-bottom: 1px solid #1e293b; color: #e2e8f0; }
+  .class-table tr:hover td { background: #1e293b; }
+
+  .avg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .avg-box { background: #0f172a; border-radius: 12px; padding: 1.5rem; text-align: center; border: 1px solid #334155; }
+  .avg-box .avg-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+  .avg-box .avg-sublabel { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+  .avg-box .avg-value { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .submit-status { text-align: center; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+  .submit-success { background: #16a34a22; color: #4ade80; border: 1px solid #16a34a44; }
+  .submit-error { background: #ef444422; color: #f87171; border: 1px solid #ef444444; }
+  .submit-sending { background: #3b82f622; color: #60a5fa; border: 1px solid #3b82f644; }
+
+  .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #334155; border-top-color: #5eead4; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 2rem auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .bar-chart { margin-top: 1rem; }
+  .bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
+  .bar-name { width: 100px; font-size: 0.8rem; color: #94a3b8; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 28px; background: #0f172a; border-radius: 4px; overflow: hidden; position: relative; display: flex; }
+  .bar-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; font-size: 0.7rem; font-weight: 600; color: white; border-radius: 4px; min-width: 40px; transition: width 0.5s; }
+  .bar-fill-batch { background: #7c3aed; }
+  .bar-fill-opf { background: #0d9488; }
+
   @media (max-width: 600px) {
     .container { padding: 1rem; }
     h1 { font-size: 1.5rem; }
@@ -125,6 +159,8 @@
     .field-row { grid-template-columns: 70px 1fr; }
     .first-done { grid-template-columns: 1fr; }
     .disruption-stats { grid-template-columns: 1fr; }
+    .avg-row { grid-template-columns: 1fr; }
+    .bar-name { width: 60px; }
   }
 </style>
 </head>
@@ -157,6 +193,9 @@
       <div class="btn-row">
         <button class="btn btn-primary btn-lg" onclick="startGame()">Spiel starten</button>
       </div>
+    </div>
+    <div class="dashboard-link">
+      <a onclick="showDashboard()">📊 Klassenauswertung anzeigen</a>
     </div>
   </div>
 
@@ -215,7 +254,8 @@
   <!-- SCREEN: Results -->
   <div id="screen-results" class="hidden">
     <div class="card">
-      <h2>Ergebnisse</h2>
+      <h2>Ihre Ergebnisse</h2>
+      <div id="submit-status"></div>
       <div class="results-grid">
         <div class="result-box result-batch">
           <div class="label">Batch</div>
@@ -269,11 +309,30 @@
     </div>
 
     <div class="card text-center">
-      <p style="color: #64748b; margin-bottom: 1rem;">Teilen Sie Ihre Ergebnisse im Miro-Board</p>
-      <div id="share-summary" style="background: #0f172a; border-radius: 8px; padding: 1rem; text-align: left; font-family: monospace; font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem; white-space: pre-line;"></div>
       <div class="btn-row">
+        <button class="btn btn-success" onclick="showDashboard()">📊 Klassenauswertung</button>
         <button class="btn btn-outline" onclick="copyResults()">Ergebnisse kopieren</button>
         <button class="btn btn-outline" onclick="resetGame()">Nochmal spielen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Dashboard -->
+  <div id="screen-dashboard" class="hidden">
+    <div class="card">
+      <h2>📊 Klassenauswertung</h2>
+      <p>Live-Ergebnisse aller Teilnehmenden</p>
+      <div id="dashboard-content">
+        <div class="text-center" style="padding: 2rem;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top: 1rem;">Lade Ergebnisse...</p>
+        </div>
+      </div>
+    </div>
+    <div class="card text-center">
+      <div class="btn-row">
+        <button class="btn btn-teal" onclick="loadDashboard()">🔄 Aktualisieren</button>
+        <button class="btn btn-outline" onclick="showScreen('screen-welcome')">← Zurück zum Spiel</button>
       </div>
     </div>
   </div>
@@ -290,6 +349,11 @@
 </div>
 
 <script>
+// ========== KONFIGURATION ==========
+// Nach dem Deployen des Google Apps Scripts hier die URL eintragen:
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq_4LN-cKYGTP8uxiqVs9WnavzBY3rICMhdrWCollr-YJwg-LO9_UfsRvDu4kZN2xz/exec';
+// ====================================
+
 const FIELDS = ['name', 'strasse', 'plz', 'ort'];
 const FIELD_LABELS = { name: 'Name', strasse: 'Strasse', plz: 'PLZ', ort: 'Ort' };
 const NUM_ADDRESSES = 3;
@@ -311,7 +375,7 @@ let batchCurrentField = 0;
 let batchTotalTime = 0;
 let batchFirstDone = 0;
 let batchAddressDoneTimes = [];
-let batchDisruptions = []; // { time, duration, name }
+let batchDisruptions = [];
 let batchDisruptionTotal = 0;
 
 let opfStartTime = 0;
@@ -323,14 +387,10 @@ let opfAddressDoneTimes = [];
 let opfDisruptions = [];
 let opfDisruptionTotal = 0;
 
-// Schedule disruptions: one per round, at a random point
-let batchDisruptionScheduled = false;
+let batchDisruptionAfterStep = 0;
 let batchDisruptionTriggered = false;
-let batchDisruptionAfterStep = 0; // trigger after which step (0-based)
-
-let opfDisruptionScheduled = false;
-let opfDisruptionTriggered = false;
 let opfDisruptionAfterAddress = 0;
+let opfDisruptionTriggered = false;
 
 function pickDisruption() {
   return DISRUPTIONS[Math.floor(Math.random() * DISRUPTIONS.length)];
@@ -362,7 +422,6 @@ function showDisruption(disruption, mode) {
       }
     }, 1000);
 
-    // Track disruption
     const elapsed = performance.now() - (mode === 'batch' ? batchStartTime : opfStartTime);
     const record = { time: elapsed, duration: disruption.duration * 1000, name: disruption.title };
     if (mode === 'batch') {
@@ -383,10 +442,9 @@ function startGame() {
     return;
   }
 
-  // Schedule disruptions
-  batchDisruptionAfterStep = Math.floor(Math.random() * 3) + 1; // after step 1, 2, or 3
+  batchDisruptionAfterStep = Math.floor(Math.random() * 3) + 1;
   batchDisruptionTriggered = false;
-  opfDisruptionAfterAddress = Math.floor(Math.random() * 2) + 1; // after address 1 or 2
+  opfDisruptionAfterAddress = Math.floor(Math.random() * 2) + 1;
   opfDisruptionTriggered = false;
 
   showScreen('screen-batch');
@@ -453,7 +511,7 @@ async function batchNext() {
     input.disabled = true;
   }
 
-  const stepJustDone = batchCurrentField + 1; // 1-based
+  const stepJustDone = batchCurrentField + 1;
 
   if (batchCurrentField === FIELDS.length - 1) {
     const now = performance.now();
@@ -466,7 +524,6 @@ async function batchNext() {
     clearInterval(batchTimerInterval);
     document.getElementById('batch-final-time').textContent = formatTime(batchTotalTime);
 
-    // Disruption summary
     if (batchDisruptions.length > 0) {
       document.getElementById('batch-disruption-summary').innerHTML =
         `<p style="color: #fbbf24; margin-top: 0.5rem;">⚠️ ${batchDisruptions.length} Störung(en) — ${(batchDisruptionTotal/1000).toFixed(0)}s Wartezeit</p>`;
@@ -475,7 +532,6 @@ async function batchNext() {
     return;
   }
 
-  // Check if disruption should fire
   if (!batchDisruptionTriggered && stepJustDone === batchDisruptionAfterStep) {
     batchDisruptionTriggered = true;
     const d = pickDisruption();
@@ -581,7 +637,7 @@ async function opfNext() {
     opfFirstDone = elapsed;
   }
 
-  const addressJustDone = opfCurrentAddress + 1; // 1-based
+  const addressJustDone = opfCurrentAddress + 1;
   opfCurrentAddress++;
 
   if (opfCurrentAddress >= NUM_ADDRESSES) {
@@ -591,7 +647,6 @@ async function opfNext() {
     return;
   }
 
-  // Check disruption
   if (!opfDisruptionTriggered && addressJustDone === opfDisruptionAfterAddress) {
     opfDisruptionTriggered = true;
     const d = pickDisruption();
@@ -635,7 +690,6 @@ function showResults() {
   const barsContainer = document.getElementById('timeline-bars');
   barsContainer.innerHTML = '';
 
-  // Batch bar
   const batchBar = document.createElement('div');
   batchBar.innerHTML = `
     <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem;">Batch — alle Adressen erst am Ende fertig</div>
@@ -647,7 +701,6 @@ function showResults() {
   `;
   barsContainer.appendChild(batchBar);
 
-  // OPF bar
   const opfBar = document.createElement('div');
   opfBar.style.marginTop = '0.75rem';
   let opfSegments = '';
@@ -669,20 +722,237 @@ function showResults() {
   const opfSec = (opfTotalTime / 1000).toFixed(1);
   const firstBatchSec = (batchFirstDone / 1000).toFixed(1);
   const firstOpfSec = (opfFirstDone / 1000).toFixed(1);
-  const firstDiff = batchFirstDone > 0 ? ((1 - opfFirstDone / batchFirstDone) * 100).toFixed(0) : '—';
 
-  let summary = `${playerName}\n`;
-  summary += `Batch: ${batchSec}s | OPF: ${opfSec}s\n`;
-  summary += `Erste Adresse: Batch ${firstBatchSec}s | OPF ${firstOpfSec}s\n`;
-  summary += `Erste Adresse ${firstDiff}% schneller im OPF`;
-  if (batchDisruptions.length > 0 || opfDisruptions.length > 0) {
-    summary += `\nStörungen: Batch ${batchDisruptions.length}x (${(batchDisruptionTotal/1000).toFixed(0)}s) | OPF ${opfDisruptions.length}x (${(opfDisruptionTotal/1000).toFixed(0)}s)`;
+  // Auto-submit to Google Sheets
+  submitResults();
+}
+
+async function submitResults() {
+  if (!APPS_SCRIPT_URL) return;
+
+  const statusEl = document.getElementById('submit-status');
+  statusEl.innerHTML = '<div class="submit-status submit-sending">⏳ Ergebnisse werden an die Klasse gesendet...</div>';
+
+  const data = {
+    name: playerName,
+    batchTotal: (batchTotalTime / 1000).toFixed(1),
+    opfTotal: (opfTotalTime / 1000).toFixed(1),
+    batchFirst: (batchFirstDone / 1000).toFixed(1),
+    opfFirst: (opfFirstDone / 1000).toFixed(1),
+    batchDisruptionCount: batchDisruptions.length,
+    batchDisruptionTime: (batchDisruptionTotal / 1000).toFixed(1),
+    opfDisruptionCount: opfDisruptions.length,
+    opfDisruptionTime: (opfDisruptionTotal / 1000).toFixed(1)
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    statusEl.innerHTML = '<div class="submit-status submit-success">✅ Ergebnisse erfolgreich an die Klassenauswertung gesendet!</div>';
+  } catch (err) {
+    statusEl.innerHTML = '<div class="submit-status submit-error">⚠️ Ergebnisse konnten nicht gesendet werden. Bitte kopieren und manuell teilen.</div>';
   }
-  document.getElementById('share-summary').textContent = summary;
+}
+
+function showDashboard() {
+  showScreen('screen-dashboard');
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const container = document.getElementById('dashboard-content');
+
+  if (!APPS_SCRIPT_URL) {
+    container.innerHTML = `
+      <div class="text-center" style="padding: 2rem;">
+        <p style="color: #f87171;">⚠️ Die Klassenauswertung ist noch nicht konfiguriert.</p>
+        <p style="color: #64748b; margin-top: 0.5rem;">Bitte die Google Apps Script URL in der Konfiguration eintragen.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="text-center" style="padding: 2rem;">
+      <div class="loading-spinner"></div>
+      <p style="margin-top: 1rem;">Lade Ergebnisse...</p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL);
+    const result = await response.json();
+
+    if (!result.rows || result.rows.length === 0) {
+      container.innerHTML = `
+        <div class="text-center" style="padding: 2rem;">
+          <p style="font-size: 2rem;">🏁</p>
+          <p style="color: #94a3b8; margin-top: 0.5rem;">Noch keine Ergebnisse vorhanden. Spielen Sie eine Runde!</p>
+        </div>
+      `;
+      return;
+    }
+
+    const stats = result.stats;
+    const rows = result.rows;
+
+    // Find max time for bar scaling
+    const maxTime = Math.max(
+      ...rows.map(r => Math.max(r.batchTotal, r.opfTotal))
+    );
+
+    let html = '';
+
+    // Averages
+    html += `
+      <div style="text-align: center; margin-bottom: 1rem;">
+        <span style="font-size: 2rem; font-weight: 700; color: #f8fafc;">${stats.count}</span>
+        <span style="color: #64748b;"> Teilnehmende</span>
+      </div>
+      <div class="avg-row">
+        <div class="avg-box">
+          <div class="avg-label">⌀ Gesamtzeit</div>
+          <div class="avg-value" style="color: #a78bfa;">${stats.avgBatchTotal}s</div>
+          <div class="avg-sublabel">Batch</div>
+        </div>
+        <div class="avg-box">
+          <div class="avg-label">⌀ Gesamtzeit</div>
+          <div class="avg-value" style="color: #5eead4;">${stats.avgOpfTotal}s</div>
+          <div class="avg-sublabel">One Piece Flow</div>
+        </div>
+      </div>
+      <div class="avg-row">
+        <div class="avg-box">
+          <div class="avg-label">⌀ Erste Adresse</div>
+          <div class="avg-value" style="color: #a78bfa;">${stats.avgBatchFirst}s</div>
+          <div class="avg-sublabel">Batch</div>
+        </div>
+        <div class="avg-box">
+          <div class="avg-label">⌀ Erste Adresse</div>
+          <div class="avg-value" style="color: #5eead4;">${stats.avgOpfFirst}s</div>
+          <div class="avg-sublabel">One Piece Flow</div>
+        </div>
+      </div>
+    `;
+
+    // Insight
+    const firstDiffPct = stats.avgBatchFirst > 0
+      ? ((1 - stats.avgOpfFirst / stats.avgBatchFirst) * 100).toFixed(0)
+      : 0;
+    const totalDiffPct = stats.avgBatchTotal > 0
+      ? ((1 - stats.avgOpfTotal / stats.avgBatchTotal) * 100).toFixed(0)
+      : 0;
+
+    html += `
+      <div class="insight-box">
+        <h3>Klassen-Erkenntnis</h3>
+        <p>Im Durchschnitt war die <strong>erste Adresse im OPF ${Math.abs(firstDiffPct)}% ${firstDiffPct >= 0 ? 'schneller' : 'langsamer'}</strong> fertig als im Batch.
+        Die Gesamtzeit war im OPF ${Math.abs(totalDiffPct)}% ${totalDiffPct >= 0 ? 'schneller' : 'langsamer'}.</p>
+      </div>
+    `;
+
+    // Bar chart - Gesamtzeit per person
+    html += `<h3 style="color: #f1f5f9; margin-top: 1.5rem; margin-bottom: 0.5rem;">Gesamtzeit pro Person</h3>`;
+    html += `<div class="bar-chart">`;
+    for (const row of rows) {
+      html += `
+        <div class="bar-row">
+          <div class="bar-name">${row.name}</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-batch" style="width: ${(row.batchTotal / maxTime) * 100}%">${row.batchTotal}s</div>
+          </div>
+        </div>
+        <div class="bar-row" style="margin-bottom: 1rem;">
+          <div class="bar-name" style="color: #64748b; font-size: 0.7rem;"></div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-opf" style="width: ${(row.opfTotal / maxTime) * 100}%">${row.opfTotal}s</div>
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+
+    // Legend
+    html += `
+      <div style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 1rem; font-size: 0.8rem; color: #64748b;">
+        <div style="display: flex; align-items: center; gap: 0.4rem;"><div style="width: 12px; height: 12px; background: #7c3aed; border-radius: 2px;"></div> Batch</div>
+        <div style="display: flex; align-items: center; gap: 0.4rem;"><div style="width: 12px; height: 12px; background: #0d9488; border-radius: 2px;"></div> One Piece Flow</div>
+      </div>
+    `;
+
+    // Table
+    html += `
+      <h3 style="color: #f1f5f9; margin-top: 2rem; margin-bottom: 0.5rem;">Alle Ergebnisse</h3>
+      <div style="overflow-x: auto;">
+        <table class="class-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Batch (s)</th>
+              <th>OPF (s)</th>
+              <th>1. Adr. Batch</th>
+              <th>1. Adr. OPF</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    for (const row of rows) {
+      html += `
+        <tr>
+          <td>${row.name}</td>
+          <td style="color: #a78bfa;">${row.batchTotal}</td>
+          <td style="color: #5eead4;">${row.opfTotal}</td>
+          <td style="color: #a78bfa;">${row.batchFirst}</td>
+          <td style="color: #5eead4;">${row.opfFirst}</td>
+        </tr>
+      `;
+    }
+    html += `
+          </tbody>
+          <tfoot>
+            <tr style="border-top: 2px solid #334155; font-weight: 700;">
+              <td>⌀ Durchschnitt</td>
+              <td style="color: #a78bfa;">${stats.avgBatchTotal}</td>
+              <td style="color: #5eead4;">${stats.avgOpfTotal}</td>
+              <td style="color: #a78bfa;">${stats.avgBatchFirst}</td>
+              <td style="color: #5eead4;">${stats.avgOpfFirst}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+
+    container.innerHTML = html;
+
+  } catch (err) {
+    container.innerHTML = `
+      <div class="text-center" style="padding: 2rem;">
+        <p style="color: #f87171;">⚠️ Fehler beim Laden der Ergebnisse.</p>
+        <p style="color: #64748b; margin-top: 0.5rem; font-size: 0.85rem;">${err.message}</p>
+      </div>
+    `;
+  }
 }
 
 function copyResults() {
-  const text = document.getElementById('share-summary').textContent;
+  const batchSec = (batchTotalTime / 1000).toFixed(1);
+  const opfSec = (opfTotalTime / 1000).toFixed(1);
+  const firstBatchSec = (batchFirstDone / 1000).toFixed(1);
+  const firstOpfSec = (opfFirstDone / 1000).toFixed(1);
+  const firstDiff = batchFirstDone > 0 ? ((1 - opfFirstDone / batchFirstDone) * 100).toFixed(0) : '—';
+
+  let text = `${playerName}\n`;
+  text += `Batch: ${batchSec}s | OPF: ${opfSec}s\n`;
+  text += `Erste Adresse: Batch ${firstBatchSec}s | OPF ${firstOpfSec}s\n`;
+  text += `Erste Adresse ${firstDiff}% schneller im OPF`;
+  if (batchDisruptions.length > 0 || opfDisruptions.length > 0) {
+    text += `\nStörungen: Batch ${batchDisruptions.length}x (${(batchDisruptionTotal/1000).toFixed(0)}s) | OPF ${opfDisruptions.length}x (${(opfDisruptionTotal/1000).toFixed(0)}s)`;
+  }
+
   navigator.clipboard.writeText(text).then(() => {
     const btn = event.target;
     btn.textContent = 'Kopiert!';
@@ -707,11 +977,12 @@ function resetGame() {
   opfDisruptionTriggered = false;
   clearInterval(batchTimerInterval);
   clearInterval(opfTimerInterval);
+  document.getElementById('submit-status').innerHTML = '';
   showScreen('screen-welcome');
 }
 
 function showScreen(id) {
-  ['screen-welcome', 'screen-batch', 'screen-transition', 'screen-opf', 'screen-results']
+  ['screen-welcome', 'screen-batch', 'screen-transition', 'screen-opf', 'screen-results', 'screen-dashboard']
     .forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
 }
 
