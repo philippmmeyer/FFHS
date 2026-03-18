@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Name Game - Lean Simulation | UF16</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  .container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  h1 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.25rem; color: #f8fafc; }
+  .subtitle { text-align: center; color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+
+  .card { background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; border: 1px solid #334155; }
+  .card h2 { font-size: 1.3rem; margin-bottom: 1rem; color: #f1f5f9; }
+  .card p { color: #94a3b8; line-height: 1.6; margin-bottom: 0.75rem; }
+
+  .badge { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge-batch { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
+  .badge-opf { background: #0d948822; color: #5eead4; border: 1px solid #0d948844; }
+
+  .round-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+  .round-header h2 { margin-bottom: 0; }
+
+  .timer-display { font-size: 3rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; margin: 1rem 0; letter-spacing: 0.05em; }
+  .timer-batch { color: #a78bfa; }
+  .timer-opf { color: #5eead4; }
+
+  .address-grid { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+
+  .address-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; transition: border-color 0.2s, box-shadow 0.2s; }
+  .address-card.active { border-color: #7c3aed; box-shadow: 0 0 0 2px #7c3aed33; }
+  .address-card.active-opf { border-color: #0d9488; box-shadow: 0 0 0 2px #0d948833; }
+  .address-card.done { border-color: #22c55e44; opacity: 0.6; }
+  .address-card h3 { font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .field-row { display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+  .field-label { font-size: 0.8rem; color: #64748b; text-align: right; }
+  .field-input { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 0.4rem 0.6rem; color: #e2e8f0; font-size: 0.9rem; outline: none; transition: border-color 0.2s; width: 100%; }
+  .field-input:focus { border-color: #7c3aed; }
+  .field-input.opf-focus:focus { border-color: #0d9488; }
+  .field-input:disabled { opacity: 0.3; cursor: not-allowed; }
+  .field-input.filled { border-color: #22c55e44; color: #86efac; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #7c3aed; color: white; }
+  .btn-primary:hover:not(:disabled) { background: #6d28d9; }
+  .btn-teal { background: #0d9488; color: white; }
+  .btn-teal:hover:not(:disabled) { background: #0f766e; }
+  .btn-outline { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+  .btn-outline:hover:not(:disabled) { background: #1e293b; color: #f1f5f9; }
+  .btn-lg { padding: 1rem 3rem; font-size: 1.1rem; }
+
+  .btn-row { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+
+  .progress-bar { height: 4px; background: #334155; border-radius: 2px; margin-bottom: 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .progress-batch { background: #7c3aed; }
+  .progress-opf { background: #0d9488; }
+
+  .step-indicator { text-align: center; color: #64748b; font-size: 0.85rem; margin-bottom: 0.75rem; }
+  .step-indicator strong { color: #e2e8f0; }
+
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .result-box { background: #0f172a; border-radius: 8px; padding: 1.5rem; text-align: center; border: 1px solid #334155; }
+  .result-box .label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .result-box .value { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .result-box .unit { font-size: 0.9rem; color: #64748b; margin-top: 0.25rem; }
+  .result-batch .value { color: #a78bfa; }
+  .result-opf .value { color: #5eead4; }
+
+  .insight-box { background: #0d948811; border: 1px solid #0d948833; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+  .insight-box h3 { color: #5eead4; font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .insight-box p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+
+  .timeline { margin-top: 1.5rem; }
+  .timeline h3 { color: #f1f5f9; font-size: 1rem; margin-bottom: 1rem; }
+  .timeline-bar { display: flex; align-items: stretch; height: 40px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem; background: #0f172a; }
+  .timeline-segment { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: white; min-width: 30px; transition: width 0.5s; }
+
+  .first-done { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .first-done-box { background: #0f172a; border-radius: 8px; padding: 1rem; text-align: center; border: 1px solid #334155; }
+  .first-done-box .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem; }
+  .first-done-box .value { font-size: 1.5rem; font-weight: 700; }
+
+  .hidden { display: none !important; }
+  .text-center { text-align: center; }
+
+  .instructions-list { list-style: none; padding: 0; }
+  .instructions-list li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; color: #cbd5e1; line-height: 1.5; }
+  .instructions-list li::before { content: attr(data-num); position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
+
+  .name-input { font-size: 1.1rem; padding: 0.75rem 1rem; text-align: center; max-width: 300px; margin: 0 auto; display: block; }
+
+  /* Disruption overlay */
+  .disruption-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.92); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .disruption-card { background: #1e293b; border: 2px solid #ef4444; border-radius: 16px; padding: 2.5rem; text-align: center; max-width: 500px; margin: 1rem; animation: shakeIn 0.4s ease; }
+  .disruption-card .icon { font-size: 3rem; margin-bottom: 1rem; }
+  .disruption-card h2 { color: #fbbf24; font-size: 1.4rem; margin-bottom: 0.75rem; }
+  .disruption-card p { color: #94a3b8; font-size: 1rem; margin-bottom: 1rem; line-height: 1.5; }
+  .disruption-card .countdown { font-size: 2rem; font-weight: 700; color: #ef4444; font-variant-numeric: tabular-nums; }
+  @keyframes shakeIn {
+    0% { transform: scale(0.8) rotate(-2deg); opacity: 0; }
+    50% { transform: scale(1.05) rotate(1deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  .disruption-log { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155; }
+  .disruption-log-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.8rem; color: #94a3b8; }
+  .disruption-log-item .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
+
+  .disruption-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .disruption-stat { background: #0f172a; border-radius: 8px; padding: 1rem; text-align: center; border: 1px solid #334155; }
+  .disruption-stat .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+  .disruption-stat .value { font-size: 1.3rem; font-weight: 700; color: #fbbf24; }
+
+  @media (max-width: 600px) {
+    .container { padding: 1rem; }
+    h1 { font-size: 1.5rem; }
+    .timer-display { font-size: 2.2rem; }
+    .results-grid { grid-template-columns: 1fr; }
+    .field-row { grid-template-columns: 70px 1fr; }
+    .first-done { grid-template-columns: 1fr; }
+    .disruption-stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Name Game</h1>
+  <p class="subtitle">Lean Simulation: Batch vs. One Piece Flow</p>
+
+  <!-- SCREEN: Welcome -->
+  <div id="screen-welcome">
+    <div class="card">
+      <h2>Willkommen zur Lean-Simulation</h2>
+      <p>In diesem Spiel erleben Sie den Unterschied zwischen <strong>Batch-Produktion</strong> und <strong>One Piece Flow</strong> am eigenen Leib.</p>
+      <p>Sie werden 3 Adressen auf zwei verschiedene Arten eingeben. Achtung: Es kann zu <strong>Prozessstörungen</strong> kommen!</p>
+    </div>
+    <div class="card">
+      <h2>So funktioniert es</h2>
+      <ol class="instructions-list">
+        <li data-num="1.">Geben Sie Ihren Namen ein</li>
+        <li data-num="2."><strong>Runde 1 (Batch):</strong> Erst alle 3 Namen, dann alle Strassen, dann PLZ, dann Orte</li>
+        <li data-num="3."><strong>Runde 2 (One Piece Flow):</strong> Jede Adresse komplett, bevor die nächste kommt</li>
+        <li data-num="4.">Zwischendurch können <strong>Störungen</strong> auftreten — genau wie im echten Prozess</li>
+        <li data-num="5.">Am Ende vergleichen wir die Ergebnisse</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Ihr Name</h2>
+      <input type="text" id="player-name" class="field-input name-input" placeholder="Vorname Nachname" autofocus>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-lg" onclick="startGame()">Spiel starten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Batch Round -->
+  <div id="screen-batch" class="hidden">
+    <div class="card">
+      <div class="round-header">
+        <span class="badge badge-batch">Runde 1</span>
+        <h2>Batch-Produktion</h2>
+      </div>
+      <div class="step-indicator" id="batch-step-text"></div>
+      <div class="progress-bar">
+        <div class="progress-fill progress-batch" id="batch-progress" style="width: 0%"></div>
+      </div>
+      <div class="timer-display timer-batch" id="batch-timer">00:00.0</div>
+      <div class="address-grid" id="batch-fields"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="batch-next-btn" onclick="batchNext()">Weiter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Transition -->
+  <div id="screen-transition" class="hidden">
+    <div class="card text-center">
+      <h2>Runde 1 abgeschlossen!</h2>
+      <div class="timer-display timer-batch" id="batch-final-time">00:00.0</div>
+      <div id="batch-disruption-summary"></div>
+      <p style="margin-top: 1rem;">Jetzt kommt Runde 2: <strong>One Piece Flow</strong></p>
+      <p>Diesmal geben Sie jede Adresse <em>komplett</em> ein, bevor Sie zur nächsten wechseln.</p>
+      <div class="btn-row">
+        <button class="btn btn-teal btn-lg" onclick="startOPF()">Runde 2 starten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: OPF Round -->
+  <div id="screen-opf" class="hidden">
+    <div class="card">
+      <div class="round-header">
+        <span class="badge badge-opf">Runde 2</span>
+        <h2>One Piece Flow</h2>
+      </div>
+      <div class="step-indicator" id="opf-step-text"></div>
+      <div class="progress-bar">
+        <div class="progress-fill progress-opf" id="opf-progress" style="width: 0%"></div>
+      </div>
+      <div class="timer-display timer-opf" id="opf-timer">00:00.0</div>
+      <div class="address-grid" id="opf-fields"></div>
+      <div class="btn-row">
+        <button class="btn btn-teal" id="opf-next-btn" onclick="opfNext()">Weiter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Results -->
+  <div id="screen-results" class="hidden">
+    <div class="card">
+      <h2>Ergebnisse</h2>
+      <div class="results-grid">
+        <div class="result-box result-batch">
+          <div class="label">Batch</div>
+          <div class="value" id="result-batch-time">—</div>
+          <div class="unit">Gesamtzeit</div>
+        </div>
+        <div class="result-box result-opf">
+          <div class="label">One Piece Flow</div>
+          <div class="value" id="result-opf-time">—</div>
+          <div class="unit">Gesamtzeit</div>
+        </div>
+      </div>
+
+      <div class="first-done">
+        <div class="first-done-box">
+          <div class="label">Erste Adresse fertig (Batch)</div>
+          <div class="value" style="color: #a78bfa;" id="result-batch-first">—</div>
+        </div>
+        <div class="first-done-box">
+          <div class="label">Erste Adresse fertig (OPF)</div>
+          <div class="value" style="color: #5eead4;" id="result-opf-first">—</div>
+        </div>
+      </div>
+
+      <div class="disruption-stats" id="disruption-results"></div>
+
+      <div class="timeline" id="timeline-section">
+        <h3>Wann war jede Adresse komplett?</h3>
+        <div id="timeline-bars"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Was bedeutet das?</h2>
+      <div class="insight-box">
+        <h3>Durchlaufzeit vs. Gesamtzeit</h3>
+        <p>Die Gesamtzeit kann ähnlich sein — aber im One Piece Flow ist die <strong>erste Adresse viel schneller fertig</strong>. Der Kunde bekommt schneller Wert geliefert.</p>
+      </div>
+      <div class="insight-box">
+        <h3>Störungen treffen Batch härter</h3>
+        <p>Im Batch-Modus blockiert eine Störung den <strong>gesamten Stapel</strong> — alle Adressen stehen still. Im One Piece Flow ist nur die aktuelle Adresse betroffen, die anderen sind bereits fertig oder noch nicht begonnen.</p>
+      </div>
+      <div class="insight-box">
+        <h3>Kontextwechsel kosten Zeit</h3>
+        <p>Im Batch müssen Sie sich bei jedem Feldwechsel neu orientieren: «Welche Strasse gehört zu welchem Namen?» Im OPF bleiben Sie im Kontext einer Adresse — weniger Fehler, weniger Suchzeit.</p>
+      </div>
+      <div class="insight-box">
+        <h3>Übertragung auf die Praxis</h3>
+        <p>In Unternehmen werden Aufgaben oft in grossen Losen bearbeitet. <strong>Kleinere Losgrössen</strong> reduzieren die Durchlaufzeit, machen Probleme schneller sichtbar und erhöhen die Prozessresilienz bei Störungen.</p>
+      </div>
+    </div>
+
+    <div class="card text-center">
+      <p style="color: #64748b; margin-bottom: 1rem;">Teilen Sie Ihre Ergebnisse im Miro-Board</p>
+      <div id="share-summary" style="background: #0f172a; border-radius: 8px; padding: 1rem; text-align: left; font-family: monospace; font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem; white-space: pre-line;"></div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="copyResults()">Ergebnisse kopieren</button>
+        <button class="btn btn-outline" onclick="resetGame()">Nochmal spielen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Disruption overlay (hidden by default) -->
+<div id="disruption-overlay" class="disruption-overlay hidden">
+  <div class="disruption-card">
+    <div class="icon" id="disruption-icon"></div>
+    <h2 id="disruption-title"></h2>
+    <p id="disruption-text"></p>
+    <div class="countdown" id="disruption-countdown"></div>
+  </div>
+</div>
+
+<script>
+const FIELDS = ['name', 'strasse', 'plz', 'ort'];
+const FIELD_LABELS = { name: 'Name', strasse: 'Strasse', plz: 'PLZ', ort: 'Ort' };
+const NUM_ADDRESSES = 3;
+
+// Disruption definitions
+const DISRUPTIONS = [
+  { icon: '🔍', title: 'Qualitätsprüfung!', text: 'Ein Prüfer kontrolliert Ihre bisherige Arbeit. Bitte warten...', duration: 4 },
+  { icon: '📞', title: 'Kundenrückfrage!', text: 'Ein Kunde ruft an und möchte den Lieferstatus wissen. Bitte warten...', duration: 3 },
+  { icon: '🖨️', title: 'Drucker-Stau!', text: 'Der Drucker hat einen Papierstau. IT wurde informiert...', duration: 5 },
+  { icon: '📋', title: 'Materialengpass!', text: 'Neue Umschläge müssen aus dem Lager geholt werden...', duration: 4 },
+  { icon: '⚙️', title: 'Systemupdate!', text: 'Das ERP-System führt ein Update durch. Bitte warten...', duration: 3 },
+  { icon: '👔', title: 'Spontanes Meeting!', text: 'Ihr Vorgesetzter braucht kurz Ihren Input. Bitte warten...', duration: 4 },
+];
+
+let playerName = '';
+let batchStartTime = 0;
+let batchTimerInterval = null;
+let batchCurrentField = 0;
+let batchTotalTime = 0;
+let batchFirstDone = 0;
+let batchAddressDoneTimes = [];
+let batchDisruptions = []; // { time, duration, name }
+let batchDisruptionTotal = 0;
+
+let opfStartTime = 0;
+let opfTimerInterval = null;
+let opfCurrentAddress = 0;
+let opfTotalTime = 0;
+let opfFirstDone = 0;
+let opfAddressDoneTimes = [];
+let opfDisruptions = [];
+let opfDisruptionTotal = 0;
+
+// Schedule disruptions: one per round, at a random point
+let batchDisruptionScheduled = false;
+let batchDisruptionTriggered = false;
+let batchDisruptionAfterStep = 0; // trigger after which step (0-based)
+
+let opfDisruptionScheduled = false;
+let opfDisruptionTriggered = false;
+let opfDisruptionAfterAddress = 0;
+
+function pickDisruption() {
+  return DISRUPTIONS[Math.floor(Math.random() * DISRUPTIONS.length)];
+}
+
+function showDisruption(disruption, mode) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('disruption-overlay');
+    document.getElementById('disruption-icon').textContent = disruption.icon;
+    document.getElementById('disruption-title').textContent = disruption.title;
+    document.getElementById('disruption-text').textContent = disruption.text;
+    const countdownEl = document.getElementById('disruption-countdown');
+    overlay.classList.remove('hidden');
+
+    let remaining = disruption.duration;
+    countdownEl.textContent = remaining + 's';
+
+    const interval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        countdownEl.textContent = 'Weiter geht\'s!';
+        clearInterval(interval);
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          resolve();
+        }, 500);
+      } else {
+        countdownEl.textContent = remaining + 's';
+      }
+    }, 1000);
+
+    // Track disruption
+    const elapsed = performance.now() - (mode === 'batch' ? batchStartTime : opfStartTime);
+    const record = { time: elapsed, duration: disruption.duration * 1000, name: disruption.title };
+    if (mode === 'batch') {
+      batchDisruptions.push(record);
+      batchDisruptionTotal += disruption.duration * 1000;
+    } else {
+      opfDisruptions.push(record);
+      opfDisruptionTotal += disruption.duration * 1000;
+    }
+  });
+}
+
+function startGame() {
+  playerName = document.getElementById('player-name').value.trim();
+  if (!playerName) {
+    document.getElementById('player-name').style.borderColor = '#ef4444';
+    document.getElementById('player-name').focus();
+    return;
+  }
+
+  // Schedule disruptions
+  batchDisruptionAfterStep = Math.floor(Math.random() * 3) + 1; // after step 1, 2, or 3
+  batchDisruptionTriggered = false;
+  opfDisruptionAfterAddress = Math.floor(Math.random() * 2) + 1; // after address 1 or 2
+  opfDisruptionTriggered = false;
+
+  showScreen('screen-batch');
+  buildBatchFields();
+  batchStartTime = performance.now();
+  batchTimerInterval = setInterval(() => updateTimer('batch-timer', batchStartTime), 50);
+}
+
+function buildBatchFields() {
+  const container = document.getElementById('batch-fields');
+  container.innerHTML = '';
+  for (let i = 0; i < NUM_ADDRESSES; i++) {
+    const card = document.createElement('div');
+    card.className = 'address-card active';
+    card.id = `batch-card-${i}`;
+    card.innerHTML = `<h3>Adresse ${i + 1}</h3>`;
+
+    for (let f = 0; f < FIELDS.length; f++) {
+      const field = FIELDS[f];
+      const disabled = f !== batchCurrentField;
+      const row = document.createElement('div');
+      row.className = 'field-row';
+      row.innerHTML = `
+        <span class="field-label">${FIELD_LABELS[field]}</span>
+        <input type="text" class="field-input" id="batch-${field}-${i}"
+               ${disabled ? 'disabled' : ''}
+               placeholder="${disabled ? '' : FIELD_LABELS[field] + ' eingeben...'}"
+               onkeydown="handleBatchKey(event, ${i}, '${field}')">
+      `;
+      card.appendChild(row);
+    }
+    container.appendChild(card);
+  }
+
+  updateBatchStep();
+  setTimeout(() => {
+    const first = document.getElementById(`batch-${FIELDS[batchCurrentField]}-0`);
+    if (first) first.focus();
+  }, 100);
+}
+
+function handleBatchKey(e, addrIdx, field) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    if (!e.target.value.trim()) return;
+    const nextAddr = addrIdx + 1;
+    if (nextAddr < NUM_ADDRESSES) {
+      const nextInput = document.getElementById(`batch-${field}-${nextAddr}`);
+      if (nextInput) nextInput.focus();
+    }
+  }
+}
+
+async function batchNext() {
+  const currentField = FIELDS[batchCurrentField];
+  for (let i = 0; i < NUM_ADDRESSES; i++) {
+    const input = document.getElementById(`batch-${currentField}-${i}`);
+    if (!input.value.trim()) {
+      input.style.borderColor = '#ef4444';
+      input.focus();
+      return;
+    }
+    input.classList.add('filled');
+    input.disabled = true;
+  }
+
+  const stepJustDone = batchCurrentField + 1; // 1-based
+
+  if (batchCurrentField === FIELDS.length - 1) {
+    const now = performance.now();
+    const totalElapsed = now - batchStartTime;
+    for (let i = 0; i < NUM_ADDRESSES; i++) {
+      batchAddressDoneTimes[i] = totalElapsed;
+    }
+    batchFirstDone = totalElapsed;
+    batchTotalTime = totalElapsed;
+    clearInterval(batchTimerInterval);
+    document.getElementById('batch-final-time').textContent = formatTime(batchTotalTime);
+
+    // Disruption summary
+    if (batchDisruptions.length > 0) {
+      document.getElementById('batch-disruption-summary').innerHTML =
+        `<p style="color: #fbbf24; margin-top: 0.5rem;">⚠️ ${batchDisruptions.length} Störung(en) — ${(batchDisruptionTotal/1000).toFixed(0)}s Wartezeit</p>`;
+    }
+    showScreen('screen-transition');
+    return;
+  }
+
+  // Check if disruption should fire
+  if (!batchDisruptionTriggered && stepJustDone === batchDisruptionAfterStep) {
+    batchDisruptionTriggered = true;
+    const d = pickDisruption();
+    await showDisruption(d, 'batch');
+  }
+
+  batchCurrentField++;
+  rebuildBatchForField();
+}
+
+function rebuildBatchForField() {
+  for (let i = 0; i < NUM_ADDRESSES; i++) {
+    for (let f = 0; f < FIELDS.length; f++) {
+      const input = document.getElementById(`batch-${FIELDS[f]}-${i}`);
+      if (f === batchCurrentField) {
+        input.disabled = false;
+        input.placeholder = FIELD_LABELS[FIELDS[f]] + ' eingeben...';
+      } else if (f > batchCurrentField) {
+        input.disabled = true;
+        input.placeholder = '';
+      }
+    }
+  }
+  updateBatchStep();
+  setTimeout(() => {
+    const first = document.getElementById(`batch-${FIELDS[batchCurrentField]}-0`);
+    if (first) first.focus();
+  }, 100);
+}
+
+function updateBatchStep() {
+  const step = batchCurrentField + 1;
+  const fieldName = FIELD_LABELS[FIELDS[batchCurrentField]];
+  const plural = fieldName === 'PLZ' ? 'PLZ' : (fieldName === 'Ort' ? 'Orte' : fieldName + 'n');
+  document.getElementById('batch-step-text').innerHTML =
+    `Schritt <strong>${step}/4</strong>: Alle <strong>${plural}</strong> eingeben`;
+  document.getElementById('batch-progress').style.width = `${(batchCurrentField / FIELDS.length) * 100}%`;
+}
+
+function startOPF() {
+  showScreen('screen-opf');
+  buildOPFFields();
+  opfStartTime = performance.now();
+  opfTimerInterval = setInterval(() => updateTimer('opf-timer', opfStartTime), 50);
+}
+
+function buildOPFFields() {
+  const container = document.getElementById('opf-fields');
+  container.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'address-card active-opf';
+  card.innerHTML = `<h3>Adresse ${opfCurrentAddress + 1} von ${NUM_ADDRESSES}</h3>`;
+
+  for (let f = 0; f < FIELDS.length; f++) {
+    const field = FIELDS[f];
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    row.innerHTML = `
+      <span class="field-label">${FIELD_LABELS[field]}</span>
+      <input type="text" class="field-input opf-focus" id="opf-${field}-${opfCurrentAddress}"
+             placeholder="${FIELD_LABELS[field]} eingeben..."
+             onkeydown="handleOPFKey(event, ${opfCurrentAddress}, '${field}', ${f})">
+    `;
+    card.appendChild(row);
+  }
+
+  container.appendChild(card);
+  updateOPFStep();
+  setTimeout(() => {
+    const first = document.getElementById(`opf-${FIELDS[0]}-${opfCurrentAddress}`);
+    if (first) first.focus();
+  }, 100);
+}
+
+function handleOPFKey(e, addrIdx, field, fieldIdx) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    if (!e.target.value.trim()) return;
+    const nextFieldIdx = fieldIdx + 1;
+    if (nextFieldIdx < FIELDS.length) {
+      const nextInput = document.getElementById(`opf-${FIELDS[nextFieldIdx]}-${addrIdx}`);
+      if (nextInput) nextInput.focus();
+    }
+  }
+}
+
+async function opfNext() {
+  for (let f = 0; f < FIELDS.length; f++) {
+    const input = document.getElementById(`opf-${FIELDS[f]}-${opfCurrentAddress}`);
+    if (!input.value.trim()) {
+      input.style.borderColor = '#ef4444';
+      input.focus();
+      return;
+    }
+  }
+
+  const now = performance.now();
+  const elapsed = now - opfStartTime;
+  opfAddressDoneTimes.push(elapsed);
+
+  if (opfCurrentAddress === 0) {
+    opfFirstDone = elapsed;
+  }
+
+  const addressJustDone = opfCurrentAddress + 1; // 1-based
+  opfCurrentAddress++;
+
+  if (opfCurrentAddress >= NUM_ADDRESSES) {
+    opfTotalTime = elapsed;
+    clearInterval(opfTimerInterval);
+    showResults();
+    return;
+  }
+
+  // Check disruption
+  if (!opfDisruptionTriggered && addressJustDone === opfDisruptionAfterAddress) {
+    opfDisruptionTriggered = true;
+    const d = pickDisruption();
+    await showDisruption(d, 'opf');
+  }
+
+  buildOPFFields();
+}
+
+function updateOPFStep() {
+  document.getElementById('opf-step-text').innerHTML =
+    `Adresse <strong>${opfCurrentAddress + 1}/${NUM_ADDRESSES}</strong> — alle Felder ausfüllen`;
+  document.getElementById('opf-progress').style.width = `${(opfCurrentAddress / NUM_ADDRESSES) * 100}%`;
+}
+
+function showResults() {
+  showScreen('screen-results');
+
+  document.getElementById('result-batch-time').textContent = formatTime(batchTotalTime);
+  document.getElementById('result-opf-time').textContent = formatTime(opfTotalTime);
+  document.getElementById('result-batch-first').textContent = formatTime(batchFirstDone);
+  document.getElementById('result-opf-first').textContent = formatTime(opfFirstDone);
+
+  // Disruption stats
+  const disruptionEl = document.getElementById('disruption-results');
+  if (batchDisruptions.length > 0 || opfDisruptions.length > 0) {
+    disruptionEl.innerHTML = `
+      <div class="disruption-stat">
+        <div class="label">Störungen Batch</div>
+        <div class="value">${batchDisruptions.length}x (${(batchDisruptionTotal/1000).toFixed(0)}s)</div>
+      </div>
+      <div class="disruption-stat">
+        <div class="label">Störungen OPF</div>
+        <div class="value">${opfDisruptions.length}x (${(opfDisruptionTotal/1000).toFixed(0)}s)</div>
+      </div>
+    `;
+  }
+
+  // Timeline
+  const maxTime = Math.max(batchTotalTime, opfTotalTime);
+  const barsContainer = document.getElementById('timeline-bars');
+  barsContainer.innerHTML = '';
+
+  // Batch bar
+  const batchBar = document.createElement('div');
+  batchBar.innerHTML = `
+    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem;">Batch — alle Adressen erst am Ende fertig</div>
+    <div class="timeline-bar">
+      <div class="timeline-segment" style="width: ${(batchTotalTime / maxTime) * 100}%; background: #7c3aed;">
+        ${formatTime(batchTotalTime)}
+      </div>
+    </div>
+  `;
+  barsContainer.appendChild(batchBar);
+
+  // OPF bar
+  const opfBar = document.createElement('div');
+  opfBar.style.marginTop = '0.75rem';
+  let opfSegments = '';
+  const opfColors = ['#0d9488', '#14b8a6', '#2dd4bf'];
+  for (let i = 0; i < opfAddressDoneTimes.length; i++) {
+    const prevTime = i === 0 ? 0 : opfAddressDoneTimes[i - 1];
+    const segmentTime = opfAddressDoneTimes[i] - prevTime;
+    const width = (segmentTime / maxTime) * 100;
+    opfSegments += `<div class="timeline-segment" style="width: ${width}%; background: ${opfColors[i]};">Adr. ${i + 1}</div>`;
+  }
+  opfBar.innerHTML = `
+    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem;">One Piece Flow — Adressen werden nacheinander fertig</div>
+    <div class="timeline-bar">${opfSegments}</div>
+  `;
+  barsContainer.appendChild(opfBar);
+
+  // Share summary
+  const batchSec = (batchTotalTime / 1000).toFixed(1);
+  const opfSec = (opfTotalTime / 1000).toFixed(1);
+  const firstBatchSec = (batchFirstDone / 1000).toFixed(1);
+  const firstOpfSec = (opfFirstDone / 1000).toFixed(1);
+  const firstDiff = batchFirstDone > 0 ? ((1 - opfFirstDone / batchFirstDone) * 100).toFixed(0) : '—';
+
+  let summary = `${playerName}\n`;
+  summary += `Batch: ${batchSec}s | OPF: ${opfSec}s\n`;
+  summary += `Erste Adresse: Batch ${firstBatchSec}s | OPF ${firstOpfSec}s\n`;
+  summary += `Erste Adresse ${firstDiff}% schneller im OPF`;
+  if (batchDisruptions.length > 0 || opfDisruptions.length > 0) {
+    summary += `\nStörungen: Batch ${batchDisruptions.length}x (${(batchDisruptionTotal/1000).toFixed(0)}s) | OPF ${opfDisruptions.length}x (${(opfDisruptionTotal/1000).toFixed(0)}s)`;
+  }
+  document.getElementById('share-summary').textContent = summary;
+}
+
+function copyResults() {
+  const text = document.getElementById('share-summary').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Kopiert!';
+    setTimeout(() => btn.textContent = 'Ergebnisse kopieren', 2000);
+  });
+}
+
+function resetGame() {
+  batchCurrentField = 0;
+  batchTotalTime = 0;
+  batchFirstDone = 0;
+  batchAddressDoneTimes = [];
+  batchDisruptions = [];
+  batchDisruptionTotal = 0;
+  batchDisruptionTriggered = false;
+  opfCurrentAddress = 0;
+  opfTotalTime = 0;
+  opfFirstDone = 0;
+  opfAddressDoneTimes = [];
+  opfDisruptions = [];
+  opfDisruptionTotal = 0;
+  opfDisruptionTriggered = false;
+  clearInterval(batchTimerInterval);
+  clearInterval(opfTimerInterval);
+  showScreen('screen-welcome');
+}
+
+function showScreen(id) {
+  ['screen-welcome', 'screen-batch', 'screen-transition', 'screen-opf', 'screen-results']
+    .forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+}
+
+function updateTimer(elementId, startTime) {
+  const elapsed = performance.now() - startTime;
+  document.getElementById(elementId).textContent = formatTime(elapsed);
+}
+
+function formatTime(ms) {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const tenths = Math.floor((totalSeconds * 10) % 10);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+}
+
+document.getElementById('player-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGame();
+});
+</script>
+
+</body>
+</html>
