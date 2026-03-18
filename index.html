@@ -351,7 +351,7 @@
 <script>
 // ========== KONFIGURATION ==========
 // Nach dem Deployen des Google Apps Scripts hier die URL eintragen:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwles9uKLkwCKesZhLTcbzT9EB_UmpPgRxbdi-5DjbJ5vVlPI4VMIpLXEtBMYiEm88P/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMAnWSlbXOTs70HFNY8DXzD-2Jfzup2KwfFLjyjWPzh7qzkn2dnTIaDvwu8np8nooi/exec';
 // ====================================
 
 const FIELDS = ['name', 'strasse', 'plz', 'ort'];
@@ -746,13 +746,33 @@ async function submitResults() {
   };
 
   try {
-    // Google Apps Script: als text/plain senden (JSON-Header wird von no-cors blockiert)
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data)
-    });
+    // Via hidden iframe form submit (umgeht CORS-Probleme mit Google Apps Script)
+    let iframe = document.getElementById('submit-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.name = 'submit-iframe';
+      iframe.id = 'submit-iframe';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = APPS_SCRIPT_URL;
+    form.target = 'submit-iframe';
+
+    for (const [key, value] of Object.entries(data)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+
     statusEl.innerHTML = '<div class="submit-status submit-success">✅ Ergebnisse erfolgreich an die Klassenauswertung gesendet!</div>';
   } catch (err) {
     statusEl.innerHTML = '<div class="submit-status submit-error">⚠️ Ergebnisse konnten nicht gesendet werden. Bitte kopieren und manuell teilen.</div>';
