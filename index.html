@@ -351,7 +351,7 @@
 <script>
 // ========== KONFIGURATION ==========
 // Nach dem Deployen des Google Apps Scripts hier die URL eintragen:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyq_4LN-cKYGTP8uxiqVs9WnavzBY3rICMhdrWCollr-YJwg-LO9_UfsRvDu4kZN2xz/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwles9uKLkwCKesZhLTcbzT9EB_UmpPgRxbdi-5DjbJ5vVlPI4VMIpLXEtBMYiEm88P/exec';
 // ====================================
 
 const FIELDS = ['name', 'strasse', 'plz', 'ort'];
@@ -746,10 +746,11 @@ async function submitResults() {
   };
 
   try {
+    // Google Apps Script: als text/plain senden (JSON-Header wird von no-cors blockiert)
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data)
     });
     statusEl.innerHTML = '<div class="submit-status submit-success">✅ Ergebnisse erfolgreich an die Klassenauswertung gesendet!</div>';
